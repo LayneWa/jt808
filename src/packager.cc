@@ -454,7 +454,7 @@ int JT808FramePackagerInit(Packager* packager) {
           out->push_back(length%256);
           msg_len += 3;
         } else {  // 没有后续自定义信息.
-          out->pop_back();
+          //out->pop_back();
         }
         for (auto const& uch : extension_custom) out->push_back(uch);
         msg_len += length;
