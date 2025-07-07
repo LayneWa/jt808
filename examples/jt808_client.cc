@@ -72,14 +72,26 @@ void UpdateGNSSPositioningSolutionStatus(
       std::make_pair(libjt808::kCustomInformationLength, std::vector<uint8_t>{0}));
   }
 }
-
+#if defined (_WIN32)
+struct tm* localtime_r(const time_t* timep, struct tm* result)
+{
+    // 调用 localtime() 函数获取本地时间
+    struct tm* tmp = localtime(timep);
+    // 将 localtime() 函数返回的结果复制到 result 中
+    if (tmp != nullptr)
+    {
+        memcpy(result, tmp, sizeof(struct tm));
+    }
+    return tmp;
+}
+#endif
 std::string TimestampToString(int64_t const& timestamp) {
   struct tm tm_now;
   auto tt = static_cast<time_t>(timestamp);
   localtime_r(&tt, &tm_now);
   char date[16] = {0};
   snprintf(date, sizeof(date)-1, "%02d%02d%02d%02d%02d%02d",
-		       (tm_now.tm_year+1900)/100, tm_now.tm_mon + 1, tm_now.tm_mday,
+		       (tm_now.tm_year+1900)%100, tm_now.tm_mon + 1, tm_now.tm_mday,
 		       tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec);
   return std::string(date);
 }
