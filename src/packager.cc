@@ -669,7 +669,7 @@ int JT808FramePackagerInit(Packager* packager) {
             }
             msg_len += 2;
           }
-        } 
+        }
         return msg_len;
       }));
   return 0;
@@ -730,6 +730,10 @@ int JT808FramePackage(Packager const& packager,
     out->push_back(PROTOCOL_SIGN);
     // 处理转义.
     if (JT808MsgEscape(out) < 0) return -1;
+    //add package log
+    printf("JT808FramePackage message: ");
+    for (auto& uch : *out) printf("%02X ", uch);
+    printf("\n");
     return 0;
   }
   return -1;

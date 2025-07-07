@@ -188,7 +188,8 @@ int JT808FrameParserInit(Parser* parser) {
         // 应答结果为0(成功)时解析出附加的鉴权码.
         if (para->parse.respone_result == 0) {
           auto begin = in.begin()+pos+3;
-          auto end = begin + para->parse.msg_head.msgbody_attr.bit.msglen-3;
+          //auto end = begin + para->parse.msg_head.msgbody_attr.bit.msglen-3;
+          auto end = in.begin() + pos  + para->parse.msg_head.msgbody_attr.bit.msglen;
           para->parse.authentication_code.assign(begin, end);
         }
         return 0;
@@ -689,6 +690,9 @@ int JT808FrameParse(Parser const& parser,
                     std::vector<uint8_t> const& in,
                     ProtocolParameter* para) {
   if (para == nullptr) return -1;
+  printf("JT808FrameParse message: ");
+  for (auto& uch : in) printf("%02X ", uch);
+  printf("\n");
   std::vector<uint8_t> out;
   // 逆转义.
   if (ReverseEscape(in, &out) < 0) return -1;

@@ -539,7 +539,7 @@ void JT808Client::SendHandler(std::atomic_bool *const running) {
   if ((GetTerminalHeartbeatInterval(&temp) == 0) && (temp > 0)) {
     heartbeat_intv = temp * 1000;
   } else {
-    heartbeat_intv = 60000;  // 60s.
+    heartbeat_intv = 5000;  // 5s.
   }
   bool first_report = true;
   manual_deal_.store(false);
@@ -591,7 +591,7 @@ void JT808Client::SendHandler(std::atomic_bool *const running) {
         location_report_msg_.clear();
         // report_begin_tp = end_tp;
       }
-      heartbeat_begin_tp = end_tp;  // 重置心跳检测时间.
+      //heartbeat_begin_tp = end_tp;  // 重置心跳检测时间.
     }
     // 上次发送位置上报消息到此时的时间差.
     report_time_lag = std::chrono::duration_cast<
@@ -755,7 +755,7 @@ void JT808Client::ReceiveHandler(std::atomic_bool *const running) {
       service_is_running_.store(false);
       return;
     } else {
-      if ((errno == EAGAIN) || (errno == EWOULDBLOCK) || (errno == EINTR)) {
+      if ((errno == EAGAIN) || (errno == EWOULDBLOCK) || (errno == EINTR) || (errno == 0)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         continue;
       } else {
