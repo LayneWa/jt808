@@ -73,14 +73,26 @@ void UpdateGNSSPositioningSolutionStatus(
                      std::vector<uint8_t>{0}));
   }
 }
-
+#if defined (_WIN32)
+struct tm* localtime_r(const time_t* timep, struct tm* result)
+{
+    // 调用 localtime() 函数获取本地时间
+    struct tm* tmp = localtime(timep);
+    // 将 localtime() 函数返回的结果复制到 result 中
+    if (tmp != nullptr)
+    {
+        memcpy(result, tmp, sizeof(struct tm));
+    }
+    return tmp;
+}
+#endif
 std::string TimestampToString(int64_t const& timestamp) {
   struct tm tm_now;
   auto tt = static_cast<time_t>(timestamp);
   localtime_r(&tt, &tm_now);
   char date[16] = {0};
   snprintf(date, sizeof(date)-1, "%02d%02d%02d%02d%02d%02d",
-		       (tm_now.tm_year+1900)/100, tm_now.tm_mon + 1, tm_now.tm_mday,
+		       (tm_now.tm_year+1900)%100, tm_now.tm_mon + 1, tm_now.tm_mday,
 		       tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec);
   return std::string(date);
 }
@@ -93,11 +105,38 @@ std::string GetTime(void) {
 
 }  // namespace
 
+
+
+// string转wstring
+std::wstring StringToWstring(const std::string str)
+{
+    unsigned len = str.size() * 2; // 预留字节数
+    setlocale(LC_CTYPE, "");       //必须调用此函数
+    wchar_t* p = new wchar_t[len]; // 申请一段内存存放转换后的字符串
+    mbstowcs(p, str.c_str(), len); // 转换
+    std::wstring str1(p);
+    delete[] p;// 释放申请的内存
+    return str1;
+}
+
+// wstring转string
+std::string WstringToString(const std::wstring str)
+{
+    unsigned len = str.size() * 4;
+    setlocale(LC_CTYPE, "");
+    char* p = new char[len];
+    wcstombs(p, str.c_str(), len);
+    std::string str1(p);
+    delete[] p;
+    return str1;
+}
+
+
 int main(int argc, char **argv) {
   libjt808::JT808Client client;
   client.Init();
-  client.SetRemoteAccessPoint("127.0.0.1", 8888);
-  client.SetTerminalPhoneNumber("13395279527");
+  client.SetRemoteAccessPoint("82.157.104.53", 7000);
+  client.SetTerminalPhoneNumber("007755121422");
   client.set_location_report_inteval(1, true);
   // 重写JT808终端注册应答消息体解析函数.
   // auto& parser = client.parser();
@@ -130,15 +169,69 @@ int main(int argc, char **argv) {
   //       }
   //       return 0;
   //     })) ;
+
+
+  // 设置终端注册信息.
+  // Args:
+  //     p_id:  省域ID.
+  //     c_id:  市县域ID.
+  //     m_id:  制造商ID, 最长5字节.
+  //     t_model:  终端型号, 最长20字节.
+  //     t_id:  终端ID, 最长7字节.
+  //     c_color:  车牌颜色.
+  //     c_num:  车牌号码.
+  // Returns:
+  //     None.
+
+  libjt808::RegisterInfo register_info;
+
+  constexpr uint8_t kManufacturerId[] = {
+    'S', 'K', 'O', 'E', 'M'
+  };
+
+  constexpr uint8_t kTerminalModel[] = {
+    'S', 'K', '9', '1', '5', '1'
+  };
+
+  constexpr uint8_t kTerminalId[] = {
+    '0', '0', '0', '0', '0', '1'
+  };
+
+  register_info.province_id = 0x002c;
+  register_info.city_id = 0x012c;
+  register_info.manufacturer_id.assign(
+      kManufacturerId, kManufacturerId+sizeof(kManufacturerId));
+  register_info.terminal_model.assign(
+      kTerminalModel, kTerminalModel+sizeof(kTerminalModel));
+  register_info.terminal_id.assign(
+      kTerminalId, kTerminalId+sizeof(kTerminalId));
+  register_info.car_plate_color = libjt808::VehiclePlateColor::kBlue;
+  register_info.car_plate_num = WstringToString(L"粤") + "B12345";
+//u8"粤B12345";
+
+  client.SetTerminalRegisterInfo(register_info);
+  std::string str;
+  str.clear();
+
+  if (register_info.car_plate_color != libjt808::VehiclePlateColor::kVin) {
+    str.clear();
+    str.assign(register_info.car_plate_num.begin(),
+               register_info.car_plate_num.end());
+    printf("  car plate number: %s\n", str.c_str());
+  }
+
+
   if ((client.ConnectRemote() == 0) &&
       (client.JT808ConnectionAuthentication() == 0)) {
-    client.UpdateLocation(22.570336, 113.937577, 54.0f, 60, 0, GetTime());
+    //client.UpdateLocation(22.570336, 113.937577, 54.0f, 60, 0, GetTime());
+
+    client.UpdateLocation(0, 0, 0.0f, 0, 0, GetTime());
     libjt808::StatusBit status_bit {};
-    status_bit.bit.positioning = 1;  // 已成功定位.
+    //status_bit.bit.positioning = 1;  // 已成功定位.
     client.SetStatusBit(status_bit.value);
     auto& location_extensions = client.GetLocationExtension();
-    UpdateGNSSSatelliteNumber(11, &location_extensions);
-    UpdateGNSSPositioningSolutionStatus(2, &location_extensions);
+    //UpdateGNSSSatelliteNumber(11, &location_extensions);
+    //UpdateGNSSPositioningSolutionStatus(2, &location_extensions);
     client.Run();
     std::this_thread::sleep_for(std::chrono::seconds(1));
     uint32_t pos_flag = 0;
@@ -151,9 +244,10 @@ int main(int argc, char **argv) {
             std::chrono::milliseconds>(tp_end-tp_beg).count() >= 1000) {
         tp_beg = tp_end;
         if ((++pos_flag / 10) % 2 == 0) {  // 每10秒切换一次位置.
-          client.UpdateLocation(22.570336, 113.937577, 54.0f, 60, 0, GetTime());
+          //client.UpdateLocation(22.570336, 113.937577, 54.0f, 60, 0, GetTime());
+	  client.UpdateLocation(0, 0, 0.0f, 0, 0, GetTime());
         } else {
-          client.UpdateLocation(22.570336, 113.938577, 54.0f, 60, 0, GetTime());
+          client.UpdateLocation(22.570336, 113.938577, 54.0f, 50, 90, GetTime());
         }
         client.GenerateLocationReportMsgNow();
       } else {
