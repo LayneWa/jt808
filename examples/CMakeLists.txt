@@ -71,19 +71,31 @@ add_executable(jt808_server
   jt808_server.cc
 )
 add_dependencies(jt808_server jt808)
+if(WIN32)
+target_link_libraries(jt808_server
+  jt808
+)
+else()
 target_link_libraries(jt808_server
   jt808
   pthread
 )
+endif(WIN32)
 
 add_executable(jt808_1hz_location_report_client
   jt808_1hz_location_report_client.cc
 )
 add_dependencies(jt808_1hz_location_report_client jt808)
+if(WIN32)
+target_link_libraries(jt808_1hz_location_report_client
+  jt808
+)
+else()
 target_link_libraries(jt808_1hz_location_report_client
   jt808
   pthread
 )
+endif(WIN32)
 
 add_executable(jt808_multimedia_upload_client
   jt808_multimedia_upload_client.cc
