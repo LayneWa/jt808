@@ -114,3 +114,18 @@ target_link_libraries(jt808_multimedia_upload_server
   jt808
   pthread
 )
+
+add_executable(jt808_kankan_client
+  jt808_kankan_client.cc
+)
+add_dependencies(jt808_kankan_client jt808)
+if(WIN32)
+target_link_libraries(jt808_kankan_client
+  jt808
+)
+else()
+target_link_libraries(jt808_kankan_client
+  jt808
+  pthread
+)
+endif(WIN32)
