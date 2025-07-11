@@ -742,6 +742,14 @@ void JT808Client::ReceiveHandler(std::atomic_bool *const running) {
             parameter_.upgrade_info.upgrade_result = kTerminalUpgradeSuccess;
             PackagingGeneralMessage(kTerminalUpgradeResultReport);
           }
+        } else if (msg_id == kTextMsgdown) {  //文本信息下发
+          // 应答成功.
+          parameter_.respone_result = kNotSupport;
+          if(parameter_.parse.textmsg_down.textmsg_flag.bit.tts == 1)
+            parameter_.respone_result = kSuccess;
+          PackagingGeneralMessage(kTerminalGeneralResponse);
+          // 调用回调函数.
+          //...
         } else if (msg_id == kPlatformGeneralResponse) {
           // 接收到平台应答后, 清除进出区域报警标志位.
           if ((parameter_.parse.respone_msg_id == kLocationReport) &&

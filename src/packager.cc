@@ -173,6 +173,7 @@ int JT808FramePackagerInit(Packager* packager) {
         int msg_len = 37;
         auto& register_info = para.register_info;
         U16ToU8Array u16converter;
+        size_t count = 0;
         // 省域ID.
         u16converter.u16val = EndianSwap16(register_info.province_id);
         for (int i = 0; i < 2; ++i) out->push_back(u16converter.u8array[i]);
@@ -180,7 +181,17 @@ int JT808FramePackagerInit(Packager* packager) {
         u16converter.u16val = EndianSwap16(register_info.city_id);
         for (int i = 0; i < 2; ++i) out->push_back(u16converter.u8array[i]);
         // 制造商ID.
-        for (auto& ch: register_info.manufacturer_id) out->push_back(ch);
+        count = 0;
+        for (auto& ch: register_info.manufacturer_id) {
+            count++;
+            if (count > 5)
+                break;
+            out->push_back(ch);
+        }
+        if (register_info.manufacturer_id.size() < 5) {  // 长度不足补0x00.
+          size_t size = 5-register_info.manufacturer_id.size();
+          for (size_t i = 0; i < size; ++i) out->push_back(0x00);
+        }
         // 终端型号.
         for (auto& ch: register_info.terminal_model) out->push_back(ch);
         if (register_info.terminal_model.size() < 20) {  // 长度不足补0x00.
@@ -188,7 +199,13 @@ int JT808FramePackagerInit(Packager* packager) {
           for (size_t i = 0; i < size; ++i) out->push_back(0x00);
         }
         // 终端ID.
-        for (auto& ch: register_info.terminal_id) out->push_back(ch);
+        count = 0;
+        for (auto& ch : register_info.terminal_id) {
+            count++;
+            if (count > 7)
+                break;
+            out->push_back(ch);
+        }
         if (register_info.terminal_id.size() < 7) {  // 长度不足补0x00.
           size_t size = 7-register_info.terminal_id.size();
           for (size_t i = 0; i < size; ++i) out->push_back(0x00);
@@ -199,6 +216,19 @@ int JT808FramePackagerInit(Packager* packager) {
           for (auto& ch: register_info.car_plate_num) out->push_back(ch);
           msg_len += register_info.car_plate_num.size();
         }
+        return msg_len;
+      }
+  ));
+  // 0x8300, 文本信息下发.
+  packager->insert(std::pair<uint16_t, PackageHandler>(kTerminalRegister,
+      [] (ProtocolParameter const& para, std::vector<uint8_t>* out) {
+        if (out == nullptr) return -1;
+        int msg_len = 1;
+        auto& textmsg_down = para.textmsg_down;
+        out->push_back(textmsg_down.textmsg_flag.u8val);
+        //文本
+        for (auto& ch: textmsg_down.textmsg_data) out->push_back(ch);
+          msg_len += textmsg_down.textmsg_data.size();
         return msg_len;
       }
   ));

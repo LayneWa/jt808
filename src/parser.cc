@@ -176,6 +176,22 @@ int JT808FrameParserInit(Parser* parser) {
         return 0;
       }
   ));
+  // 0x8300, 文本信息下发.
+  parser->insert(std::pair<uint16_t, ParseHandler>(kTextMsgdown,
+      [] (std::vector<uint8_t> const& in, ProtocolParameter* para) -> int {
+        if (para == nullptr) return -1;
+        uint16_t pos = MSGBODY_NOPACKET_POS;
+        auto& textmsg_down = para->parse.textmsg_down;
+        textmsg_down.textmsg_flag.u8val = in[pos];
+        pos += 1;
+        textmsg_down.textmsg_data.clear();
+        size_t len = para->parse.msg_head.msgbody_attr.bit.msglen-1;
+        textmsg_down.textmsg_data.assign(
+            in.begin()+pos, in.begin()+pos+len);
+        return 0;
+      }
+  ));
+
   // 0x8100, 终端注册应答.
   parser->insert(std::pair<uint16_t, ParseHandler>(kTerminalRegisterResponse,
       [] (std::vector<uint8_t> const& in, ProtocolParameter* para) -> int {

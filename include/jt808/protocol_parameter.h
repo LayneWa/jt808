@@ -65,6 +65,7 @@ enum SupportedCommands {
   kDeletePolygonArea = 0x8605,  // 删除多边形区域.
   kMultimediaDataUpload = 0x0801,  // 多媒体数据上传.
   kMultimediaDataUploadResponse = 0x8800,  // 多媒体数据上传应答.
+  kTextMsgdown = 0x8300, //文本信息下发
 };
 
 // 所有应答命令.
@@ -231,6 +232,26 @@ struct FillPacket {
   std::vector<uint16_t> packet_id;
 };
 
+// 文本信息下发.
+union TextMsgFlag
+{
+    struct
+    {
+        uint8_t text_type : 2;	    // bit_0_1 01:服务   10：紧急	 11：通知
+        uint8_t display : 1;	    // bit_2 1： 终端显示器显示
+        uint8_t tts : 1;	    // bit_3 1： 终端 TTS 播读
+        uint8_t adv_display : 1;    // bit_4 1： 广告屏显示
+        uint8_t centor_nav_can : 1; // bit_5 0： 中心导航信息，1：CAN 故障码信息
+        uint8_t bit_6 : 1;	    // bit_6 保留
+        uint8_t bit_7 : 1;	    // bit_7 保留
+    } bit;
+    uint8_t u8val;
+};
+struct TestMsgDownParameter {
+    TextMsgFlag textmsg_flag;
+    std::string textmsg_data;
+};
+
 // 协议所有参数.
 struct ProtocolParameter {
   uint8_t respone_result;
@@ -266,6 +287,8 @@ struct ProtocolParameter {
   MultiMediaDataUpload multimedia_upload;
   // 多媒体数据上传应答.
   MultiMediaDataUploadResponse multimedia_upload_response;
+  // 文本信息下发.
+  TestMsgDownParameter textmsg_down;
   // 保留字段.
   std::vector<uint8_t> retain;
   // 用于解析消息.
@@ -303,6 +326,8 @@ struct ProtocolParameter {
     MultiMediaDataUpload multimedia_upload;
     // 解析出的多媒体数据上传应答.
     MultiMediaDataUploadResponse multimedia_upload_response;
+    // 文本信息下发.
+    TestMsgDownParameter textmsg_down;
     // 解析出的保留字段.
     std::vector<uint8_t> retain;
   }parse;
