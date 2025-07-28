@@ -41,6 +41,8 @@
 
 namespace libjt808 {
 
+#define _jt1078_
+
 // 已支持的协议命令.
 enum SupportedCommands {
   kTerminalGeneralResponse = 0x0001,  // 终端通用应答.
@@ -66,6 +68,22 @@ enum SupportedCommands {
   kMultimediaDataUpload = 0x0801,  // 多媒体数据上传.
   kMultimediaDataUploadResponse = 0x8800,  // 多媒体数据上传应答.
   kTextMsgdown = 0x8300, //文本信息下发
+
+#ifdef _jt1078_
+  kQueryMediaProperties = 0x9003,  //查询终端音视频属性
+  kUploadMediaProperties = 0x1003,  //终端上传音视频属性
+  kQueryRealMediaTransmit = 0x9101,  // 实时音视频传输请求
+  kUploadPassengerFlow = 0x1005,  //终端上传乘客流量
+  kRealMediaTransmitCtrl = 0x9102,  //音视频实时传输控制
+  kRealMediaTransmitStatus = 0x9105,  //实时音视频传输状态通知
+  kQueryMediaDatasheet = 0x9205,  //查询资源列表
+  kUploadMediaDatasheet = 0x1205,  //终端上传音视频资源列表
+  kQueryRemoteVideoPlayback = 0x9201,  //平台下发远程录像回放请求
+  kRemoteVideoPlaybackCtrl = 0x9202,  //平台下发远程录像回放控制
+  kMediaFilesUploadCmd = 0x9206,  //文件上传指令
+  kMediaFilesUploadFinish = 1206,  //文件上传完成通知
+  kMediaFilesUploadCtrl = 0x9207,  //文件上传控制
+#endif
 };
 
 // 所有应答命令.
@@ -247,10 +265,26 @@ union TextMsgFlag
     } bit;
     uint8_t u8val;
 };
-struct TestMsgDownParameter {
+struct TextMsgDownParameter {
     TextMsgFlag textmsg_flag;
     std::string textmsg_data;
 };
+
+#ifdef _jt1078_
+// 5. 5. 1 实时音视频传输请求
+// 消息 ID：0x9101 。
+typedef struct QueryRealMediaTransmitData
+{
+    uint8_t media_svr_ip_len = 0;    // 1、实时视频服务器IP长度
+    std::string media_svr_ip = "";   // 2、实时视频服务器IP地址
+    uint16_t media_svr_port_tcp = 0; // 3、实时视频服务器TCP端口号
+    uint16_t media_svr_port_udp = 0; // 4、实时视频服务器UDP端口号
+    uint8_t logic_channel_num;       // 5、逻辑通道号
+    uint8_t data_type;               // 6、数据类型 【0：音视频， 1：视频， 2：双相对讲，3：监听， 4：中心广播， 5：透传】
+    uint8_t code_stream_type;        // 7、码流类型 【0：主码流， 1：子码流】
+} JTT1078_9101;
+
+#endif
 
 // 协议所有参数.
 struct ProtocolParameter {
@@ -288,7 +322,13 @@ struct ProtocolParameter {
   // 多媒体数据上传应答.
   MultiMediaDataUploadResponse multimedia_upload_response;
   // 文本信息下发.
-  TestMsgDownParameter textmsg_down;
+  TextMsgDownParameter textmsg_down;
+
+#ifdef _jt1078_
+  // 实时音视频传输请求
+  JTT1078_9101 msg9101_data;
+
+#endif
   // 保留字段.
   std::vector<uint8_t> retain;
   // 用于解析消息.
@@ -327,7 +367,12 @@ struct ProtocolParameter {
     // 解析出的多媒体数据上传应答.
     MultiMediaDataUploadResponse multimedia_upload_response;
     // 文本信息下发.
-    TestMsgDownParameter textmsg_down;
+    TextMsgDownParameter textmsg_down;
+#ifdef _jt1078_
+    // 实时音视频传输请求
+    JTT1078_9101 msg9101_data;
+
+#endif
     // 解析出的保留字段.
     std::vector<uint8_t> retain;
   }parse;

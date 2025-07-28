@@ -664,6 +664,41 @@ int JT808FrameParserInit(Parser* parser) {
         }
         return 0;
       }));
+
+#ifdef _jt1078_
+  // 0x9101, 实时音视频传输请求.
+  parser->insert(std::pair<uint16_t, ParseHandler>(
+      kQueryRealMediaTransmit,
+      [] (std::vector<uint8_t> const& in, ProtocolParameter* para) -> int {
+        if (para == nullptr) return -1;
+        uint16_t pos = MSGBODY_NOPACKET_POS;
+        auto& msg9101_data = para->parse.msg9101_data;
+        msg9101_data.media_svr_ip_len = in[pos];
+        pos += 1;
+        msg9101_data.media_svr_ip.clear();
+        msg9101_data.media_svr_ip.assign(
+            in.begin()+pos, in.begin()+pos+msg9101_data.media_svr_ip_len);
+        pos += msg9101_data.media_svr_ip_len;
+
+        U16ToU8Array u16converter;
+        memcpy(u16converter.u8array, &(in[pos]), 2);
+        uint16_t port = EndianSwap16(u16converter.u16val);
+        msg9101_data.media_svr_port_tcp = port;
+        pos += 2;
+
+        memcpy(u16converter.u8array, &(in[pos]), 2);
+        port = EndianSwap16(u16converter.u16val);
+        msg9101_data.media_svr_port_udp = port;
+        pos += 2;
+        msg9101_data.logic_channel_num =in[pos];
+        pos += 1;
+        msg9101_data.data_type =in[pos];
+        pos += 1;
+        msg9101_data.code_stream_type =in[pos];
+
+        return 0;
+      }));
+#endif
   return 0;
 }
 

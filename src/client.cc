@@ -756,6 +756,15 @@ void JT808Client::ReceiveHandler(std::atomic_bool *const running) {
               (parameter_.location_info.alarm.bit.in_out_area == 1)) {
             parameter_.location_info.alarm.bit.in_out_area = 0;
           }
+        } else if (msg_id == kQueryRealMediaTransmit) {
+            printf("media_svr_ip =%s\n",parameter_.parse.msg9101_data.media_svr_ip.c_str());
+            printf("media_svr_port_tcp =%d\n",parameter_.parse.msg9101_data.media_svr_port_tcp);
+            printf("media_svr_port_udp =%d\n",parameter_.parse.msg9101_data.media_svr_port_udp);
+            printf("logic_channel_num =%d\n",parameter_.parse.msg9101_data.logic_channel_num);
+            printf("data_type =%d\n",parameter_.parse.msg9101_data.data_type);
+            printf("code_stream_type =%d\n",parameter_.parse.msg9101_data.code_stream_type);
+            parameter_.respone_result = kSuccess;
+            PackagingGeneralMessage(kTerminalGeneralResponse);
         }
       }
     } else if (ret == 0) {
