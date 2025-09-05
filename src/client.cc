@@ -42,6 +42,8 @@
 
 #include "jt808/socket_util.h"
 
+#include <iostream>
+#include <string>
 
 namespace libjt808 {
 
@@ -59,6 +61,25 @@ const RegisterInfo kRegisterInfo = {
 };
 
 }  // namespace
+
+std::string executeCurlCommand(const std::string& url) {
+  // 创建一个数组来存储curl命令和URL
+  std::array<char, 256> command;
+  snprintf(command.data(), command.size(), "curl -s %s", url.c_str());
+  // 使用std::unique_ptr和popen来执行命令并获取输出
+  std::array<char, 128 * 1024> buffer;
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.data(), "r"), pclose);
+  if (!pipe) {
+    throw std::runtime_error("popen() failed!");
+  }
+  // 读取命令输出
+  std::string result;
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    result += buffer.data();
+  }
+  return result;
+}
+
 
 JT808Client::JT808Client() {
 }
@@ -757,12 +778,43 @@ void JT808Client::ReceiveHandler(std::atomic_bool *const running) {
             parameter_.location_info.alarm.bit.in_out_area = 0;
           }
         } else if (msg_id == kQueryRealMediaTransmit) {
-            printf("media_svr_ip =%s\n",parameter_.parse.msg9101_data.media_svr_ip.c_str());
-            printf("media_svr_port_tcp =%d\n",parameter_.parse.msg9101_data.media_svr_port_tcp);
-            printf("media_svr_port_udp =%d\n",parameter_.parse.msg9101_data.media_svr_port_udp);
-            printf("logic_channel_num =%d\n",parameter_.parse.msg9101_data.logic_channel_num);
-            printf("data_type =%d\n",parameter_.parse.msg9101_data.data_type);
-            printf("code_stream_type =%d\n",parameter_.parse.msg9101_data.code_stream_type);
+//            printf("serverip =%s\n",parameter_.parse.msg9101_data.media_svr_ip.c_str());
+//            printf("media_svr_port_tcp =%d\n",parameter_.parse.msg9101_data.media_svr_port_tcp);
+//            printf("media_svr_port_udp =%d\n",parameter_.parse.msg9101_data.media_svr_port_udp);
+//            printf("logic_channel_num =%d\n",parameter_.parse.msg9101_data.logic_channel_num);
+//            printf("data_type =%d\n",parameter_.parse.msg9101_data.data_type);
+//            printf("code_stream_type =%d\n",parameter_.parse.msg9101_data.code_stream_type);
+
+            printf("cmdid =%x\n",parameter_.parse.msg_head.msg_id);
+            printf("sim =%s\n",parameter_.parse.msg_head.phone_num.c_str());
+            printf("serverip =%s\n",parameter_.parse.msg9101_data.media_svr_ip.c_str());
+            printf("porttcp =%d\n",parameter_.parse.msg9101_data.media_svr_port_tcp);
+            printf("channelno =%d\n",parameter_.parse.msg9101_data.logic_channel_num);
+            printf("mediatype =%d\n",parameter_.parse.msg9101_data.data_type);
+            printf("streamtype =%d\n",parameter_.parse.msg9101_data.code_stream_type);
+
+            printf("streamtype =%d\n",parameter_.parse.msg9101_data.code_stream_type);
+            char tbuf[256]={0};
+            sprintf(tbuf,"\"http://localhost:8123/video1078?cmdid=%x&sim=%s&serverip=%s&porttcp=%d&channelno=%d&mediatype=%d&streamtype=%d\"",
+              parameter_.parse.msg_head.msg_id,
+              parameter_.parse.msg_head.phone_num.c_str(),
+              parameter_.parse.msg9101_data.media_svr_ip.c_str(),
+              parameter_.parse.msg9101_data.media_svr_port_tcp,
+              parameter_.parse.msg9101_data.logic_channel_num,
+              parameter_.parse.msg9101_data.data_type,
+              parameter_.parse.msg9101_data.code_stream_type);
+
+            printf("url =%s\n",tbuf);
+            std::string url(tbuf);
+
+            try {
+              std::string response = executeCurlCommand(url);
+              std::cout << "Response from server:\n" << response << std::endl;
+            } catch (const std::exception& e) {
+              std::cerr << "Error: " << e.what() << std::endl;
+            }
+
+
             parameter_.respone_result = kSuccess;
             PackagingGeneralMessage(kTerminalGeneralResponse);
         }
